@@ -4,6 +4,12 @@ import cors from "cors";
 import OpenAI from "openai";
 
 const app = express();
+app.use((req, res, next) => {
+  console.log(
+    `[REQUEST] ${req.method} ${req.path}`
+  );
+  next();
+});
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
