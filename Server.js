@@ -4,7 +4,7 @@ import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MODEL = "gemini-2-flash-lite";";
+const MODEL = "gemini-2-flash-lite";
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
