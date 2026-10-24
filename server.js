@@ -61,7 +61,7 @@ app.post("/api/chat", async (req, res) => {
       : "You are JARVIS, a helpful and efficient AI assistant. Answer clearly and directly, with enough detail to be useful. Do not claim to have performed actions you have not performed.";
 
     const endpoint =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent";
 
     const response = await fetch(endpoint, {
       method: "POST",
