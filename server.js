@@ -19,6 +19,7 @@ app.get("/", (req, res) => {
     status: "online",
     assistant: "JARVIS AI",
     provider: "Google Gemini",
+    multipleKeys: true,
     internetSearch: true
   });
 });
@@ -27,142 +28,137 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     provider: "Google Gemini",
+    multipleKeys: true,
     internetSearch: true
   });
 });
 
-async function askGemini(apiKey, message, systemInstruction, mode) {
+async function askWithKey(apiKey, message, systemInstruction, mode) {
   const endpoint =
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-  let lastError = null;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey
+    },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: systemInstruction }]
+      },
+      contents: [{
+        role: "user",
+        parts: [{ text: message }]
+      }],
+      tools: [{ google_search: {} }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: mode === "red" ? 3072 : 1536
+      }
+    }),
+    signal: AbortSignal.timeout(60000)
+  });
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemInstruction }]
-          },
-          contents: [{
-            role: "user",
-            parts: [{ text: message }]
-          }],
+  const data = await response.json();
 
-          // Enable live Google Search grounding.
-          tools: [
-            {
-              google_search: {}
-            }
-          ],
+  if (!response.ok) {
+    const error = new Error(
+      data.error?.message || "Gemini request failed."
+    );
+    error.status = response.status;
+    throw error;
+  }
 
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: mode === "red" ? 3072 : 1536
-          }
-        }),
-        signal: AbortSignal.timeout(60000)
-      });
+  const candidate = data.candidates?.[0];
 
-      const data = await response.json();
+  const answer = (candidate?.content?.parts || [])
+    .map(part => part.text || "")
+    .join("")
+    .trim();
 
-      if (!response.ok) {
-        const detail =
-          data.error?.message || "Unknown Gemini error";
+  if (!answer) {
+    throw new Error("Gemini returned no answer text.");
+  }
 
-        console.error(
-          `Gemini attempt ${attempt} failed (${response.status}): ${detail}`
-        );
+  const chunks =
+    candidate?.groundingMetadata?.groundingChunks || [];
 
-        if (![429, 500, 502, 503, 504].includes(response.status)) {
-          throw new Error(`Gemini API ${response.status}: ${detail}`);
-        }
-
-        lastError = new Error(
-          `Gemini API ${response.status}: ${detail}`
-        );
-      } else {
-        const answer = (
-          data.candidates?.[0]?.content?.parts || []
-        )
-          .map(part => part.text || "")
-          .join("")
-          .trim();
-
-        if (!answer) {
-          throw new Error("Gemini returned no answer text.");
-        }
-
-        // Collect sources returned by Google Search.
-        const chunks =
-          data.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-
-        const sources = chunks
-          .filter(chunk => chunk.web?.uri)
-          .map(chunk => ({
+  const sources = [
+    ...new Map(
+      chunks
+        .filter(chunk => chunk.web?.uri)
+        .map(chunk => [
+          chunk.web.uri,
+          {
             title: chunk.web.title || "Source",
             url: chunk.web.uri
-          }));
+          }
+        ])
+    ).values()
+  ];
 
-        const uniqueSources = [
-          ...new Map(
-            sources.map(source => [source.url, source])
-          ).values()
-        ];
+  let finalAnswer = answer;
 
-        let finalAnswer = answer;
+  if (sources.length) {
+    finalAnswer += "\n\nSources:\n";
+    finalAnswer += sources
+      .slice(0, 5)
+      .map(source => `${source.title}: ${source.url}`)
+      .join("\n");
+  }
 
-        if (uniqueSources.length > 0) {
-          finalAnswer += "\n\nSources:\n";
+  return finalAnswer;
+}
 
-          finalAnswer += uniqueSources
-            .slice(0, 5)
-            .map(source => `${source.title}: ${source.url}`)
-            .join("\n");
-        }
+async function askGemini(message, systemInstruction, mode) {
+  const keys = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_2
+  ].filter(Boolean);
 
-        return finalAnswer;
-      }
+  if (!keys.length) {
+    throw new Error("No Gemini API keys configured in Render.");
+  }
+
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      console.log(`Using Gemini key ${i + 1}`);
+
+      return await askWithKey(
+        keys[i],
+        message,
+        systemInstruction,
+        mode
+      );
 
     } catch (error) {
-      lastError = error;
-
       console.error(
-        `Gemini attempt ${attempt} error: ${error.message}`
+        `Gemini key ${i + 1} failed (${error.status || "error"}):`,
+        error.message
       );
 
-      if (
-        error.message.startsWith("Gemini API 4") &&
-        !error.message.startsWith("Gemini API 429")
-      ) {
+      // Do not rotate keys to bypass quota limits.
+      if (error.status === 429) {
         throw error;
       }
-    }
 
-    if (attempt < 3) {
-      await new Promise(resolve =>
-        setTimeout(resolve, attempt * 1500)
-      );
+      // Try the next key only for authentication errors.
+      const authenticationError =
+        error.status === 401 || error.status === 403;
+
+      if (!authenticationError || i === keys.length - 1) {
+        throw error;
+      }
+
+      console.log("Trying the second configured key.");
     }
   }
 
-  throw lastError || new Error("Gemini failed after retries.");
+  throw new Error("All configured Gemini keys failed.");
 }
 
 app.post("/api/chat", async (req, res) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    return res.status(500).json({
-      error: "GEMINI_API_KEY is missing in Render environment settings."
-    });
-  }
-
   const message = req.body?.message;
   const mode = req.body?.mode === "red" ? "red" : "blue";
 
@@ -179,12 +175,11 @@ app.post("/api/chat", async (req, res) => {
   }
 
   const systemInstruction = mode === "red"
-    ? "You are JARVIS, an advanced AI assistant. Use Google Search when current information is needed. For news and recent events, search the web, give the date, summarise verified findings, and include sources. Never pretend to have searched if no search results were returned. Give detailed explanations and useful steps."
-    : "You are JARVIS, a helpful AI assistant. Use Google Search whenever the user asks about current events, today's news, recent information, or facts that may have changed. Summarise findings clearly and include sources. Never pretend to have searched if no search results were returned.";
+    ? "You are JARVIS, an advanced AI assistant. Give detailed explanations, examples and useful steps. Use Google Search for current information and today's news. Summarise findings and include sources. Never pretend to search if no results are returned."
+    : "You are JARVIS, a helpful AI assistant. Answer clearly and directly. Use Google Search for current information and today's news. Summarise findings and include sources. Never pretend to search if no results are returned.";
 
   try {
     const answer = await askGemini(
-      apiKey,
       message.trim(),
       systemInstruction,
       mode
@@ -196,7 +191,9 @@ app.post("/api/chat", async (req, res) => {
     console.error("JARVIS final error:", error.message);
 
     return res.status(502).json({
-      error: "Gemini or Google Search is temporarily unavailable. Please try again shortly."
+      error: error.status === 429
+        ? "Gemini API quota exceeded. Check your Google AI Studio usage and limits."
+        : "Gemini is temporarily unavailable. Please try again shortly."
     });
   }
 });
@@ -204,4 +201,3 @@ app.post("/api/chat", async (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`JARVIS AI listening on port ${PORT}`);
 });
-            
