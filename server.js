@@ -9,7 +9,8 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 const PORT = process.env.PORT || 3000;
-const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+const MODEL =
+  process.env.GROQ_MODEL || "openai/gpt-oss-20b";
 
 const client = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
@@ -18,6 +19,7 @@ const client = new OpenAI({
   maxRetries: 2
 });
 
+// Home route
 app.get("/", (req, res) => {
   res.json({
     status: "online",
@@ -26,6 +28,7 @@ app.get("/", (req, res) => {
   });
 });
 
+// Health check
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
@@ -33,6 +36,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// AI chat route
 app.post("/api/chat", async (req, res) => {
   try {
     const message = req.body?.message;
@@ -44,38 +48,66 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    if (typeof message !== "string" || !message.trim()) {
+    if (
+      typeof message !== "string" ||
+      !message.trim()
+    ) {
       return res.status(400).json({
         error: "Please enter a message."
       });
     }
 
-    const isRed = String(mode).toLowerCase() === "red";
+    const isRed =
+      String(mode).toLowerCase() === "red";
 
     console.log("[REQUEST] Groq chat");
 
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      messages: [
-        {
-          role: "system",
-          content: isRed
-            ? "You are JARVIS, an advanced AI assistant. Give detailed, accurate and well-organized answers."
-            : "You are JARVIS, a helpful and intelligent AI assistant. Give clear, accurate and concise answers."
-        },
-        {
-          role: "user",
-          content: message.trim()
-        }
-      ],
-      max_tokens: isRed ? 3000 : 1500
-    });
+    const systemInstruction = isRed
+      ? `You are JARVIS, an advanced intelligent AI assistant.
+
+Give detailed, comprehensive and accurate answers.
+Explain concepts clearly and use examples when useful.
+Organize longer answers with headings or lists when appropriate.
+Avoid unnecessary repetition.`
+      : `You are JARVIS, a helpful and intelligent AI assistant.
+
+Give short, natural answers in one small paragraph.
+Usually use 2 to 4 sentences.
+Answer the exact question directly.
+Avoid unnecessary explanations, long lists and repetition.
+Keep answers clear, friendly and informative.
+If the user asks for a longer explanation, provide it.`;
+
+    const completion =
+      await client.chat.completions.create({
+        model: MODEL,
+
+        messages: [
+          {
+            role: "system",
+            content: systemInstruction
+          },
+          {
+            role: "user",
+            content: message.trim()
+          }
+        ],
+
+        max_tokens: isRed ? 3000 : 350,
+
+        temperature: 0.6
+      });
 
     const answer =
       completion.choices?.[0]?.message?.content;
 
-    if (!answer) {
-      throw new Error("Groq returned an empty response.");
+    if (
+      !answer ||
+      typeof answer !== "string"
+    ) {
+      throw new Error(
+        "Groq returned an empty response."
+      );
     }
 
     console.log("[SUCCESS] Groq response received");
@@ -93,14 +125,24 @@ app.post("/api/chat", async (req, res) => {
       error.message
     );
 
-    return res.status(error.status || 500).json({
-      error: error.message || "Groq is temporarily unavailable.",
-      reply: "SYSTEM ERROR: Groq is temporarily unavailable. Please try again shortly."
+    return res.status(
+      error.status || 500
+    ).json({
+      error:
+        error.message ||
+        "Groq is temporarily unavailable.",
+
+      reply:
+        "SYSTEM ERROR: Groq is temporarily unavailable. Please try again shortly."
     });
   }
 });
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`JARVIS AI listening on port ${PORT}`);
+  console.log(
+    `JARVIS AI listening on port ${PORT}`
+  );
+
   console.log("AI provider: Groq");
 });
