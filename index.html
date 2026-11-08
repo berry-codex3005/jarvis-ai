@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#061421">
+<title>JARVIS AI</title>
+
+<style>
+:root {
+  --accent:#00d9ff;
+  --glow:rgba(0,217,255,.4);
+  --panel:rgba(7,25,43,.9);
+  --text:#e8faff;
+}
+body.red {
+  --accent:#ff3455;
+  --glow:rgba(255,52,85,.45);
+  --panel:rgba(40,8,20,.9);
+}
+* {box-sizing:border-box}
+body {
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:Arial,sans-serif;
+  background:radial-gradient(ellipse at center,#102c43,#061421 75%);
+  transition:.4s;
+}
+body.red {
+  background:radial-gradient(ellipse at center,#401020,#180710 75%);
+}
+button,input {font:inherit}
+button {cursor:pointer}
+.app {max-width:850px;margin:auto;padding:15px}
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid var(--glow);
+  padding:12px 3px;
+}
+.brand {
+  font-size:23px;
+  font-weight:bold;
+  letter-spacing:4px;
+  color:var(--accent);
+  text-shadow:0 0 12px var(--glow);
+}
+.subtitle {
+  font-size:9px;
+  letter-spacing:2px;
+  color:#91aaba;
+  margin-top:5px;
+}
+.status {
+  color:var(--accent);
+  font-size:10px;
+  text-align:right;
+}
+.profile {
+  background:transparent;
+  border:1px solid var(--accent);
+  color:var(--accent);
+  border-radius:10px;
+  padding:9px 12px;
+  font-size:20px;
+}
+.menu {
+  display:none;
+  position:absolute;
+  right:18px;
+  top:75px;
+  z-index:10;
+  width:260px;
+  padding:17px;
+  background:#091a2a;
+  border:1px solid var(--accent);
+  border-radius:12px;
+  box-shadow:0 0 20px var(--glow);
+}
+body.red .menu {background:#210a14}
+.menu.show {display:block}
+.menu input {
+  width:100%;
+  padding:10px;
+  margin:8px 0;
+  background:#061421;
+  border:1px solid var(--glow);
+  border-radius:7px;
+  color:white;
+}
+.menu button {
+  width:100%;
+  padding:10px;
+  margin-top:7px;
+  background:transparent;
+  border:1px solid var(--accent);
+  color:var(--accent);
+  border-radius:7px;
+}
+.title {
+  font-size:11px;
+  letter-spacing:2px;
+  color:var(--accent);
+  margin:23px 0 12px;
+}
+.reactor-area {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:15px 0;
+}
+.reactor {
+  width:190px;
+  height:190px;
+  border:3px solid var(--accent);
+  border-radius:50%;
+  background:radial-gradient(circle,#fff 0%,var(--accent) 8%,#087cff 25%,#061421 45%,#000 70%);
+  box-shadow:0 0 15px var(--accent),0 0 35px var(--glow),0 0 65px var(--glow);
+  animation:pulse 2.5s infinite;
+  position:relative;
+}
+.reactor:before,.reactor:after {
+  content:"";
+  position:absolute;
+  inset:20%;
+  border:3px solid var(--accent);
+  transform:rotate(45deg);
+  box-shadow:0 0 12px var(--glow);
+}
+.reactor:after {
+  inset:32%;
+  border-radius:50%;
+  transform:none;
+  background:var(--accent);
+  box-shadow:0 0 25px var(--accent);
+}
+body.red .reactor {
+  background:radial-gradient(circle,#fff 0%,#ff3455 8%,#b40030 30%,#180710 65%);
+}
+@keyframes pulse {
+  50% {
+    box-shadow:0 0 25px var(--accent),0 0 55px var(--glow),0 0 80px var(--glow);
+  }
+}
+.mode {
+  text-align:center;
+  color:var(--accent);
+  font-size:10px;
+  letter-spacing:2px;
+  margin-bottom:22px;
+}
+.panel {
+  background:var(--panel);
+  border:1px solid var(--glow);
+  border-radius:12px;
+  padding:15px;
+}
+.chat {
+  height:280px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:10px 2px;
+}
+.message {
+  max-width:88%;
+  padding:11px;
+  border-radius:10px;
+  font-size:13px;
+  line-height:1.5;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.user {
+  align-self:flex-end;
+  background:rgba(0,125,255,.2);
+  border:1px solid rgba(0,125,255,.5);
+}
+.bot {
+  align-self:flex-start;
+  background:rgba(0,217,255,.07);
+  border:1px solid var(--glow);
+}
+.composer {
+  display:flex;
+  gap:8px;
+  border-top:1px solid var(--glow);
+  padding-top:12px;
+  flex-wrap:wrap;
+}
+.composer-tools {
+  display:flex;
+  gap:7px;
+  width:100%;
+}
+.composer-tools .action {flex:1}
+.file-status {
+  width:100%;
+  font-size:11px;
+  color:var(--accent);
+  overflow-wrap:anywhere;
+}
+.composer input:not([type=file]) {
+  flex:1;
+  min-width:0;
+  background:#061421;
+  border:1px solid var(--glow);
+  border-radius:9px;
+  color:white;
+  padding:12px;
+  outline:none;
+}
+.action {
+  background:transparent;
+  color:var(--accent);
+  border:1px solid var(--accent);
+  border-radius:9px;
+  padding:10px 14px;
+}
+.action:disabled {opacity:.4}
+.grid {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+.quick {
+  background:var(--panel);
+  border:1px solid var(--glow);
+  color:var(--accent);
+  border-radius:11px;
+  min-height:85px;
+  padding:12px;
+  font-size:12px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.quick span {font-size:23px}
+.voice-buttons {
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+.voice-buttons button {flex:1}
+.footer {
+  text-align:center;
+  color:#718b9c;
+  font-size:9px;
+  letter-spacing:2px;
+  padding:25px 0 15px;
+}
+@media(max-width:400px) {
+  .brand {font-size:19px}
+  .chat {height:250px}
+  .reactor {width:165px;height:165px}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header class="topbar">
+  <div>
+    <div class="brand">J.A.R.V.I.S.</div>
+    <div class="subtitle">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="status" id="status">SYSTEM READY</div>
+    <button type="button" class="profile" id="profileButton">◉</button>
+  </div>
+</header>
+
+<div class="menu" id="profileMenu">
+  <div class="title">SYSTEM SETTINGS</div>
+  <label style="font-size:11px">AI backend HTTPS address</label>
+  <input id="backendUrl" type="url">
+  <button type="button" id="saveBackend">SAVE BACKEND</button>
+  <button type="button" id="clearChat">CLEAR CHAT</button>
+</div>
+
+<div class="reactor-area">
+  <button class="reactor" id="reactorButton" aria-label="Switch reactor mode"></button>
+</div>
+
+<div class="mode" id="modeLabel">BLUE MODE · SYSTEM ONLINE</div>
+
+<div class="title">01 / NEURAL COMMUNICATION</div>
+
+<div class="panel">
+  <div class="chat" id="messages">
+    <div class="message bot">
+      J.A.R.V.I.S.: Good day. Systems are online. How may I assist you?
+    </div>
+  </div>
+
+  <form class="composer" id="chatForm">
+    <div class="composer-tools">
+      <button class="action" id="cameraButton" type="button">📷 CAMERA</button>
+      <button class="action" id="fileButton" type="button">📁 UPLOAD FILE</button>
+    </div>
+
+    <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+    <input id="fileInput" type="file" accept="image/*,.txt,.md,.csv,.json" hidden>
+
+    <div class="file-status" id="fileStatus">No file selected</div>
+
+    <input id="userInput" placeholder="Enter your command..." autocomplete="off">
+    <button class="action" id="sendButton" type="submit">➤</button>
+  </form>
+</div>
+
+<div class="title">02 / VOICE CONTROL</div>
+
+<div class="grid">
+  <button class="quick" id="voiceButton">
+    <span>🎙️</span>VOICE ASSISTANT
+  </button>
+  <button class="quick" id="stopButton">
+    <span>⏹️</span>STOP VOICE
+  </button>
+</div>
+
+<div class="voice-buttons">
+  <button class="action" id="speakButton">SPEAK REPLY</button>
+</div>
+
+<div class="title">03 / QUICK SYSTEMS</div>
+
+<div class="grid">
+  <button type="button" class="quick"
+    data-prompt="Act as my electronics helper. Explain electronic components and circuits with examples.">
+    <span>⚡</span>ELECTRONICS HELPER
+  </button>
+
+  <button type="button" class="quick"
+    data-prompt="Act as my AI knowledge assistant. Explain my questions clearly with examples.">
+    <span>🧠</span>AI KNOWLEDGE
+  </button>
+
+  <button type="button" class="quick"
+    data-prompt="Act as my coding assistant. Help me understand and write code step by step.">
+    <span>💻</span>CODING ASSISTANT
+  </button>
+
+  <button class="quick" id="searchButton">
+    <span>🌐</span>INTERNET SEARCH
+  </button>
+</div>
+
+<div class="footer">
+  STARK INDUSTRIES<br><br>
+  J.A.R.V.I.S. ARTIFICIAL INTELLIGENCE
+</div>
+
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  const DEFAULT_BACKEND = "https://jarvis-ai-boq0.onrender.com";
+  let backend = DEFAULT_BACKEND;
+  let lastReply = "";
+  let recognition = null;
+  let selectedFile = null;
+
+  const status = value => {
+    $("status").textContent = value;
+  };
+
+  function addMessage(text,type="bot") {
+    const div = document.createElement("div");
+    div.className = "message " + type;
+    div.textContent = text;
+    $("messages").appendChild(div);
+    $("messages").scrollTop = $("messages").scrollHeight;
+    return div;
+  }
+
+  try {
+    backend = localStorage.getItem("jarvisBackend") || DEFAULT_BACKEND;
+  } catch(e) {}
+
+  $("backendUrl").value = backend;
+
+  function extractReply(data) {
+    for (const key of ["answer","reply","response","message","text"]) {
+      if (typeof data?.[key] === "string" && data[key].trim()) {
+        return data[key].trim();
+      }
+    }
+    return "";
+  }
+
+  async function sendMessage(rawMessage) {
+    const message = String(rawMessage || "").trim();
+
+    if (!message) {
+      status("ENTER A MESSAGE");
+      return;
+    }
+
+    addMessage("YOU: " + message,"user");
+    $("userInput").value = "";
+    $("sendButton").disabled = true;
+    status("AI THINKING");
+
+    const loading = addMessage("JARVIS is processing...");
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(),90000);
+
+      let response;
+
+      try {
+        response = await fetch(
+          backend.replace(/\/+$/,"") + "/api/chat",
+          {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+              message,
+              mode:document.body.classList.contains("red") ? "red" : "blue"
+            }),
+            signal:controller.signal
+          }
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Server error");
+      }
+
+      const reply = extractReply(data);
+
+      if (!reply) throw new Error("No answer received.");
+
+      loading.remove();
+      addMessage("J.A.R.V.I.S.: " + reply);
+      lastReply = reply;
+      status("SYSTEM READY");
+
+    } catch(error) {
+      loading.remove();
+      addMessage("SYSTEM ERROR: " + error.message);
+      status("CONNECTION ERROR");
+    } finally {
+      $("sendButton").disabled = false;
+    }
+  }
+
+  function chooseFile(file) {
+    if (!file) return;
+
+    const allowed = [
+      "image/jpeg","image/png","image/webp",
+      "text/plain","text/markdown","text/csv",
+      "application/json"
+    ];
+
+    if (!allowed.includes(file.type) &&
+        !/\.(txt|md|csv|json)$/i.test(file.name)) {
+      addMessage("Unsupported file. Choose JPG, PNG, WEBP, TXT, MD, CSV or JSON.");
+      return;
+    }
+
+    const max = file.type.startsWith("image/")
+      ? 7 * 1024 * 1024
+      : 500 * 1024;
+
+    if (file.size > max) {
+      addMessage("File is too large. Please choose a smaller file.");
+      return;
+    }
+
+    selectedFile = file;
+    $("fileStatus").textContent = "Selected: " + file.name;
+    status("FILE READY");
+  }
+
+  async function analyzeFile() {
+    if (!selectedFile) return false;
+
+    const file = selectedFile;
+    const prompt = $("userInput").value.trim() ||
+      (file.type.startsWith("image/")
+        ? "Describe this image and explain what is visible."
+        : "Summarize and explain this document.");
+
+    addMessage("YOU: " + prompt + " [Attached: " + file.name + "]","user");
+    $("userInput").value = "";
+    $("sendButton").disabled = true;
+    status("ANALYZING FILE");
+
+    const loading = addMessage("JARVIS is examining " + file.name + "...");
+
+    try {
+      const dataBase64 = await new Promise((resolve,reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+        reader.onerror = () => reject(new Error("Could not read file."));
+        reader.readAsDataURL(file);
+      });
+
+      const response = await fetch(
+        backend.replace(/\/+$/,"") + "/api/analyze",
+        {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            prompt,
+            fileName:file.name,
+            mimeType:file.type || "application/octet-stream",
+            dataBase64,
+            mode:document.body.classList.contains("red") ? "red" : "blue"
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || "File analysis failed.");
+
+      const reply = extractReply(data);
+      if (!reply) throw new Error("No analysis was returned.");
+
+      loading.remove();
+      addMessage("J.A.R.V.I.S.: " + reply);
+      lastReply = reply;
+      selectedFile = null;
+      $("fileStatus").textContent = "No file selected";
+      $("fileInput").value = "";
+      $("cameraInput").value = "";
+      status("SYSTEM READY");
+
+    } catch(error) {
+      loading.remove();
+      addMessage("SYSTEM ERROR: " + error.message);
+      status("ANALYSIS ERROR");
+    } finally {
+      $("sendButton").disabled = false;
+    }
+
+    return true;
+  }
+
+  function startVoice() {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      addMessage("Voice recognition is not supported. Try Chrome.");
+      return;
+    }
+
+    try {
+      if (recognition) recognition.stop();
+
+      recognition = new SpeechRecognition();
+      recognition.lang = "en-IN";
+      recognition.interimResults = false;
+
+      recognition.onstart = () => status("LISTENING — SPEAK NOW");
+
+      recognition.onresult = event => {
+        const spoken = event.results[0][0].transcript;
+        $("userInput").value = spoken;
+        sendMessage(spoken);
+      };
+
+      recognition.onerror = event => {
+        status("VOICE ERROR");
+        addMessage("Voice error: " + event.error);
+      };
+
+      recognition.onend = () => {
+        if ($("status").textContent.startsWith("LISTENING")) {
+          status("SYSTEM READY");
+        }
+      };
+
+      recognition.start();
+
+    } catch(error) {
+      addMessage("Could not start microphone: " + error.message);
+    }
+  }
+
+  function speakReply() {
+    if (!lastReply) {
+      addMessage("There is no JARVIS reply to read aloud yet.");
+      return;
+    }
+
+    if (!("speechSynthesis" in window)) {
+      addMessage("Speech output is not supported.");
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const speech = new SpeechSynthesisUtterance(lastReply);
+    speech.lang = "en-IN";
+    speech.rate = 1;
+
+    window.speechSynthesis.speak(speech);
+    status("SPEAKING REPLY");
+
+    speech.onend = () => status("SYSTEM READY");
+  }
+
+  $("chatForm").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (selectedFile) {
+      await analyzeFile();
+    } else {
+      sendMessage($("userInput").value);
+    }
+  });
+
+  $("cameraButton").addEventListener("click",() => {
+    $("cameraInput").click();
+  });
+
+  $("fileButton").addEventListener("click",() => {
+    $("fileInput").click();
+  });
+
+  $("cameraInput").addEventListener("change",event => {
+    chooseFile(event.target.files[0]);
+  });
+
+  $("fileInput").addEventListener("change",event => {
+    chooseFile(event.target.files[0]);
+  });
+
+  $("reactorButton").addEventListener("click",() => {
+    document.body.classList.toggle("red");
+
+    const red = document.body.classList.contains("red");
+
+    $("modeLabel").textContent = red
+      ? "RED MODE · DEEP THINKING"
+      : "BLUE MODE · SYSTEM ONLINE";
+
+    status(red ? "RED MODE ACTIVE" : "BLUE MODE ACTIVE");
+  });
+
+  $("profileButton").addEventListener("click",() => {
+    $("profileMenu").classList.toggle("show");
+  });
+
+  $("saveBackend").addEventListener("click",() => {
+    const value = $("backendUrl").value.trim().replace(/\/+$/,"");
+
+    if (!/^https:\/\//i.test(value) &&
+        !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value)) {
+      addMessage("Please enter a valid HTTPS backend address.");
+      return;
+    }
+
+    backend = value;
+
+    try {
+      localStorage.setItem("jarvisBackend",backend);
+    } catch(e) {}
+
+    $("profileMenu").classList.remove("show");
+    addMessage("Backend address saved.");
+    status("BACKEND SAVED");
+  });
+
+  $("clearChat").addEventListener("click",() => {
+    if (confirm("Clear all chat messages?")) {
+      $("messages").innerHTML = "";
+      lastReply = "";
+      addMessage("Chat cleared. Systems ready.");
+      status("SYSTEM READY");
+    }
+
+    $("profileMenu").classList.remove("show");
+  });
+
+  $("voiceButton").addEventListener("click",startVoice);
+
+  $("stopButton").addEventListener("click",() => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    if (recognition) {
+      try { recognition.stop(); } catch(e) {}
+    }
+
+    status("SYSTEM READY");
+    addMessage("Voice functions stopped.");
+  });
+
+  $("speakButton").addEventListener("click",speakReply);
+
+  $("searchButton").addEventListener("click",() => {
+    const query = prompt("What do you want to search?");
+
+    if (query && query.trim()) {
+      window.open(
+        "https://www.google.com/search?q=" + encodeURIComponent(query.trim()),
+        "_blank",
+        "noopener"
+      );
+      status("OPENING WEB SEARCH");
+    }
+  });
+
+  document.querySelectorAll("[data-prompt]").forEach(button => {
+    button.addEventListener("click",() => {
+      sendMessage(button.getAttribute("data-prompt"));
+    });
+  });
+
+  status("SYSTEM READY");
+  console.log("JARVIS AI initialized");
+})();
+</script>
+</body>
+  </html>
