@@ -1,0 +1,625 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050b18">
+<title>J.A.R.V.I.S. AI</title>
+
+<style>
+:root {
+  --accent: #00d9ff;
+  --accent2: #087cff;
+  --glow: rgba(0,217,255,.35);
+  --bg: #030711;
+  --panel: rgba(5,20,38,.88);
+  --text: #e8faff;
+  --muted: #7da9bd;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at 50% 15%, #102b45 0%, transparent 48%),
+    linear-gradient(150deg,#02050c,#071323 55%,#02050c);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: .35s;
+}
+body.red {
+  --accent: #ff3455;
+  --accent2: #b40030;
+  --glow: rgba(255,52,85,.35);
+  --panel: rgba(35,5,15,.9);
+  --muted: #c58b9b;
+  background:
+    radial-gradient(ellipse at 50% 15%, #461020 0%, transparent 48%),
+    linear-gradient(150deg,#080207,#210714 55%,#080207);
+}
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor;
+      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.topbar {
+  height: 70px; padding: 0 18px; display: flex;
+  align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--accent);
+  background: rgba(0,0,0,.35);
+  box-shadow: 0 0 18px var(--glow);
+}
+.brand { color: var(--accent); font-size: 21px; font-weight: 800;
+         letter-spacing: 4px; }
+.subtitle { color: var(--muted); font-size: 9px; letter-spacing: 2px;
+            margin-top: 5px; }
+.top-actions { display: flex; gap: 9px; }
+.icon-btn {
+  width: 40px; height: 40px; display: grid; place-items: center;
+  border: 1px solid var(--accent); border-radius: 10px;
+  color: var(--accent); background: transparent;
+}
+.icon-btn:active, .action-btn:active { transform: scale(.96); }
+main { width: min(850px,94%); margin: auto; padding: 22px 0 35px; }
+.status {
+  display: flex; justify-content: space-between; gap: 10px;
+  color: var(--accent); font-size: 11px; letter-spacing: 2px;
+}
+.status span:last-child { color: var(--muted); }
+.reactor-area { text-align: center; padding: 22px 0 16px; }
+.reactor-button {
+  position: relative; width: 220px; height: 220px; border-radius: 50%;
+  padding: 0; overflow: hidden; border: 2px solid var(--accent);
+  background: #000; box-shadow: 0 0 22px var(--glow), 0 0 65px var(--glow);
+  transition: .35s;
+}
+.reactor-button img {
+  width: 100%; height: 100%; object-fit: contain;
+  object-position: center; display: block; padding: 8px; background: #000; transition: filter .35s;
+}
+body.red .reactor-button {
+   border-color: #ff3455;
+   box-shadow: 0 0 25px rgba(255,52,85,.7),
+               0 0 75px rgba(255,20,55,.55),
+               inset 0 0 22px rgba(255,20,55,.25);
+}
+body.red .reactor-button img {
+   filter: sepia(1) saturate(7) hue-rotate(305deg) brightness(1.12);
+}
+.reactor-button:active { transform: scale(.96); }
+.reactor-label {
+  color: var(--accent); font-size: 11px; letter-spacing: 3px;
+  margin-top: 14px;
+}
+.section-title {
+  color: var(--accent); font-size: 12px; letter-spacing: 2px;
+  padding: 12px 14px; border-bottom: 1px solid var(--accent);
+}
+.panel {
+  background: var(--panel); border: 1px solid var(--accent);
+  border-radius: 12px; margin: 15px 0;
+  box-shadow: 0 0 16px rgba(0,0,0,.25);
+  overflow: hidden;
+}
+.chat-box {
+  height: 290px; overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.message {
+  max-width: 88%; padding: 11px 13px; border-radius: 12px;
+  font-size: 14px; line-height: 1.5; white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message.ai {
+  align-self: flex-start; border: 1px solid var(--accent);
+  background: rgba(0,130,180,.12);
+}
+.message.user {
+  align-self: flex-end; border: 1px solid var(--accent2);
+  background: rgba(0,100,255,.17);
+}
+.message small {
+  display: block; color: var(--accent); font-size: 9px;
+  letter-spacing: 1px; margin-bottom: 5px;
+}
+.composer { padding: 12px; border-top: 1px solid var(--accent); }
+#messageInput {
+  width: 100%; min-height: 48px; max-height: 120px; resize: vertical;
+  color: var(--text); background: rgba(0,0,0,.35);
+  border: 1px solid var(--accent); border-radius: 9px;
+  padding: 12px; outline: none;
+}
+.composer-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-top: 10px; flex-wrap: wrap;
+}
+.tools, .send-tools { display: flex; gap: 7px; }
+.action-btn {
+  min-height: 39px; padding: 8px 11px; border-radius: 8px;
+  border: 1px solid var(--accent); background: transparent;
+  color: var(--accent); display: inline-flex; align-items: center;
+  justify-content: center; gap: 7px; font-size: 12px;
+}
+.action-btn.primary {
+  background: var(--accent2); border-color: var(--accent2); color: white;
+}
+.action-btn svg { width: 17px; height: 17px; }
+.quick-grid {
+  display: grid; grid-template-columns: repeat(2,1fr);
+  gap: 9px; padding: 12px;
+}
+.quick-grid button { min-height: 48px; }
+.footer {
+  text-align: center; color: var(--muted); font-size: 10px;
+  letter-spacing: 2px; padding: 18px 0;
+}
+#settingsPanel {
+  display: none; padding: 14px; margin-top: 12px;
+  border: 1px solid var(--accent); border-radius: 10px;
+  background: var(--panel);
+}
+#settingsPanel.show { display: block; }
+#backendUrl {
+  width: 100%; margin: 9px 0; padding: 11px;
+  color: var(--text); background: #030711;
+  border: 1px solid var(--accent); border-radius: 8px;
+}
+#fileInput, #cameraInput {
+   position: fixed; left: -10000px; top: 0;
+   width: 1px; height: 1px; opacity: 0;
+}
+#attachmentName { color: var(--muted); font-size: 11px; margin-top: 8px; }
+.typing { color: var(--accent); font-size: 12px; padding: 4px; }
+@media(max-width:480px) {
+  .brand { font-size: 17px; letter-spacing: 3px; }
+  .reactor-button { width: 190px; height: 190px; }
+  .chat-box { height: 260px; }
+  .action-btn { padding: 8px; }
+}
+</style>
+</head>
+
+<body>
+<!-- Reusable SVG icon library: no emoji icons -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-settings" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 1.7-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-2.4v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L8 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H6.7v-2.4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L8 8.6l1.7-1.7.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h2.4v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.7 1.7-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2V14h-.2a1.7 1.7 0 0 0-1.5 1z"/>
+  </symbol>
+  <symbol id="i-send" viewBox="0 0 24 24">
+    <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+  </symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24">
+    <rect x="9" y="2" width="6" height="12" rx="3"/>
+    <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/>
+  </symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24">
+    <path d="M14 4h-4L8 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24">
+    <path d="M12 16V3m-5 5 5-5 5 5M4 16v4h16v-4"/>
+  </symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24">
+    <path d="M3 6h18M8 6V4h8v2m3 0-1 15H6L5 6m4 4v7m6-7v7"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24">
+    <circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/>
+  </symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24">
+    <rect x="5" y="5" width="14" height="14" rx="2"/>
+  </symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24">
+    <rect x="6" y="6" width="12" height="12" rx="2"/>
+    <path d="M9 1v5m6-5v5M9 18v5m6-5v5M1 9h5m-5 6h5m12-6h5m-5 6h5"/>
+  </symbol>
+  <symbol id="i-book" viewBox="0 0 24 24">
+    <path d="M4 4h6a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4z"/>
+    <path d="M20 4h-4a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h4z"/>
+  </symbol>
+  <symbol id="i-code" viewBox="0 0 24 24">
+    <path d="m8 8-5 4 5 4m8-8 5 4-5 4m-2-12-4 16"/>
+  </symbol>
+</svg>
+
+<header class="topbar">
+  <div>
+    <div class="brand">J.A.R.V.I.S.</div>
+    <div class="subtitle">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="clearButton" title="Clear chat">
+      <svg><use href="#i-trash"/></svg>
+    </button>
+    <button class="icon-btn" id="settingsButton" title="Settings">
+      <svg><use href="#i-settings"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="status">
+    <span id="systemStatus">SYSTEM READY</span>
+    <span id="modeLabel">BLUE MODE</span>
+  </div>
+
+  <div id="settingsPanel">
+    <strong style="color:var(--accent)">SYSTEM SETTINGS</strong>
+    <label for="backendUrl" style="display:block;margin-top:12px;font-size:12px">
+      AI BACKEND HTTPS ADDRESS
+    </label>
+    <input id="backendUrl" type="url"
+      placeholder="https://your-render-service.onrender.com">
+    <button class="action-btn primary" id="saveBackend">SAVE BACKEND</button>
+    <p style="font-size:11px;color:var(--muted)">
+      Your private API key stays on the server. Never enter it here.
+    </p>
+  </div>
+
+  <section class="reactor-area">
+    <button class="reactor-button" id="reactorButton"
+      title="Switch blue and red modes">
+      <img src="arc-reactor.jpg" alt="JARVIS Arc Reactor"
+        onerror="this.alt='Arc Reactor image missing';">
+    </button>
+    <div class="reactor-label">ARC REACTOR — TAP TO CHANGE MODE</div>
+  </section>
+
+  <section class="panel">
+    <div class="section-title">01 / NEURAL COMMUNICATION</div>
+    <div class="chat-box" id="chatBox">
+      <div class="message ai">
+        <small>J.A.R.V.I.S.</small>
+        Systems online. How may I assist you?
+      </div>
+    </div>
+
+    <div class="composer">
+      <textarea id="messageInput" rows="2"
+        placeholder="Enter your command..."></textarea>
+      <div id="attachmentName"></div>
+
+      <div class="composer-actions">
+        <div class="tools">
+          <button class="action-btn" id="cameraButton" title="Camera">
+            <svg><use href="#i-camera"/></svg>
+          </button>
+          <button class="action-btn" id="uploadButton" title="Upload file">
+            <svg><use href="#i-upload"/></svg>
+          </button>
+          <button class="action-btn" id="micButton" title="Voice input">
+            <svg><use href="#i-mic"/></svg>
+          </button>
+        </div>
+        <div class="send-tools">
+          <button class="action-btn primary" id="sendButton">
+            <svg><use href="#i-send"/></svg> SEND
+          </button>
+        </div>
+      </div>
+      <input id="fileInput" type="file"
+        accept="image/*,.txt,.md,.csv,.json,.pdf">
+      <input id="cameraInput" type="file"
+        accept="image/*" capture="environment">
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-title">02 / QUICK SYSTEMS</div>
+    <div class="quick-grid">
+      <button class="action-btn" data-prompt="Act as an electronics helper. Help me understand electronic components, circuits and troubleshooting safely.">
+        <svg><use href="#i-chip"/></svg> ELECTRONICS HELPER
+      </button>
+      <button class="action-btn" data-prompt="Explain this topic clearly, with examples.">
+        <svg><use href="#i-book"/></svg> AI KNOWLEDGE
+      </button>
+      <button class="action-btn" data-prompt="Act as a coding assistant. Help me write and understand code.">
+        <svg><use href="#i-code"/></svg> CODING ASSISTANT
+      </button>
+      <button class="action-btn" id="searchButton">
+        <svg><use href="#i-search"/></svg> INTERNET SEARCH
+      </button>
+    </div>
+  </section>
+
+  <div class="footer">STARK-INSPIRED AI INTERFACE · SYSTEM ONLINE</div>
+</main>
+
+<script>
+const DEFAULT_BACKEND = "https://jarvis-ai-boq0.onrender.com";
+
+const chatBox = document.getElementById("chatBox");
+const messageInput = document.getElementById("messageInput");
+const systemStatus = document.getElementById("systemStatus");
+const modeLabel = document.getElementById("modeLabel");
+const attachmentName = document.getElementById("attachmentName");
+
+let mode = "blue";
+let selectedFile = null;
+let recognition = null;
+
+function backendAddress() {
+  return (localStorage.getItem("jarvisBackend") || DEFAULT_BACKEND)
+    .replace(/\/+$/, "");
+}
+
+function setStatus(text) {
+  systemStatus.textContent = text;
+}
+
+function addMessage(text, sender = "ai") {
+  const message = document.createElement("div");
+  message.className = "message " + sender;
+
+  const label = document.createElement("small");
+  label.textContent = sender === "ai" ? "J.A.R.V.I.S." : "YOU";
+
+  const content = document.createElement("div");
+  content.textContent = text;
+
+  message.append(label, content);
+  chatBox.appendChild(message);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return message;
+}
+
+function setMode(nextMode) {
+  mode = nextMode;
+  document.body.classList.toggle("red", mode === "red");
+  modeLabel.textContent = mode.toUpperCase() + " MODE";
+}
+
+document.getElementById("reactorButton").addEventListener("click", () => {
+  setMode(mode === "blue" ? "red" : "blue");
+});
+
+document.getElementById("settingsButton").addEventListener("click", () => {
+  document.getElementById("settingsPanel").classList.toggle("show");
+  document.getElementById("backendUrl").value = backendAddress();
+});
+
+document.getElementById("saveBackend").addEventListener("click", () => {
+  const value = document.getElementById("backendUrl").value.trim();
+  if (!value) {
+    alert("Enter your Render backend address.");
+    return;
+  }
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" &&
+        url.hostname !== "localhost" &&
+        url.hostname !== "127.0.0.1") {
+      alert("Please use an HTTPS backend address.");
+      return;
+    }
+    localStorage.setItem("jarvisBackend", value.replace(/\/+$/, ""));
+    alert("Backend address saved.");
+  } catch {
+    alert("That backend address is not valid.");
+  }
+});
+
+document.getElementById("clearButton").addEventListener("click", () => {
+  chatBox.innerHTML = "";
+  addMessage("Chat cleared. Systems ready.", "ai");
+});
+
+document.getElementById("searchButton").addEventListener("click", () => {
+  const query = messageInput.value.trim();
+  if (!query) {
+    messageInput.focus();
+    messageInput.placeholder = "Type what you want to search for...";
+    return;
+  }
+  window.open(
+    "https://www.google.com/search?q=" + encodeURIComponent(query),
+    "_blank"
+  );
+});
+
+document.querySelectorAll("[data-prompt]").forEach(button => {
+  button.addEventListener("click", () => {
+    messageInput.value = button.dataset.prompt;
+    messageInput.focus();
+  });
+});
+
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function sendFile(file, prompt) {
+  if (!file) return;
+
+  const isImage = file.type.startsWith("image/");
+  const isText = [
+    "text/plain", "text/markdown", "text/csv", "application/json"
+  ].includes(file.type) ||
+    /\.(txt|md|csv|json)$/i.test(file.name);
+
+  if (!isImage && !isText) {
+    addMessage("This file type is not supported yet. Please use an image, TXT, MD, CSV or JSON file.", "ai");
+    return;
+  }
+
+  if (file.size > (isImage ? 7 : 0.5) * 1024 * 1024) {
+    addMessage("This file is too large. Please choose a smaller file.", "ai");
+    return;
+  }
+
+  const base64 = await fileToBase64(file);
+
+  const response = await fetch(backendAddress() + "/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt: prompt || "Please analyze this file and explain it.",
+      fileName: file.name,
+      mimeType: file.type || "text/plain",
+      dataBase64: base64,
+      mode
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || data.message || "File analysis failed.");
+  return data.reply || data.answer || "I could not analyze that file.";
+}
+
+async function sendMessage() {
+  const text = messageInput.value.trim();
+  if (!text && !selectedFile) return;
+
+  const file = selectedFile;
+  selectedFile = null;
+  attachmentName.textContent = "";
+  messageInput.value = "";
+
+  addMessage(text || "Please analyze this file.", "user");
+  if (file) {
+    const attachmentMessage = addMessage("Attached: " + file.name, "user");
+    if (file.type.startsWith("image/")) {
+      const preview = document.createElement("img");
+      preview.src = URL.createObjectURL(file);
+      preview.alt = "Attached photo";
+      preview.style.cssText = "display:block;max-width:220px;max-height:220px;object-fit:contain;border-radius:8px;margin-top:8px;border:1px solid var(--accent)";
+      attachmentMessage.appendChild(preview);
+    }
+  }
+
+  const typing = addMessage("Processing your request...", "ai");
+  typing.classList.add("typing");
+  setStatus("PROCESSING");
+
+  try {
+    let reply;
+
+    if (file) {
+      reply = await sendFile(file, text);
+    } else {
+      const response = await fetch(backendAddress() + "/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, mode })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.message || "AI request failed.");
+      }
+      reply = data.reply || data.answer || "No answer received.";
+    }
+
+    typing.remove();
+    addMessage(reply, "ai");
+    speak(reply);
+    setStatus("SYSTEM READY");
+  } catch (error) {
+    typing.remove();
+    addMessage("Connection error: " + error.message, "ai");
+    setStatus("CONNECTION ERROR");
+  }
+}
+
+document.getElementById("sendButton").addEventListener("click", sendMessage);
+
+messageInput.addEventListener("keydown", event => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+});
+
+function chooseFile(file) {
+  if (!file) return;
+  selectedFile = file;
+  attachmentName.textContent = "Selected: " + file.name;
+}
+
+document.getElementById("uploadButton").addEventListener("click", () => {
+  document.getElementById("fileInput").click();
+});
+
+const cameraInput = document.getElementById("cameraInput");
+
+document.getElementById("cameraButton").addEventListener("click", () => {
+  cameraInput.value = "";
+  cameraInput.click();
+});
+
+document.getElementById("fileInput").addEventListener("change", event => {
+  chooseFile(event.target.files[0]);
+  event.target.value = "";
+});
+
+cameraInput.addEventListener("change", event => {
+  const photo = event.target.files && event.target.files[0];
+  if (!photo) return;
+
+  if (!photo.type.startsWith("image/")) {
+    addMessage("Please capture or select an image.", "ai");
+    event.target.value = "";
+    return;
+  }
+
+  chooseFile(photo);
+  messageInput.focus();
+  event.target.value = "";
+});
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  window.speechSynthesis.speak(utterance);
+}
+
+document.getElementById("micButton").addEventListener("click", () => {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    addMessage("Voice input is not supported by this browser. Try Chrome.", "ai");
+    return;
+  }
+
+  if (recognition) {
+    recognition.stop();
+    recognition = null;
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "en-IN";
+  recognition.interimResults = false;
+
+  recognition.onstart = () => setStatus("LISTENING");
+  recognition.onresult = event => {
+    messageInput.value = event.results[0][0].transcript;
+    setStatus("SYSTEM READY");
+  };
+  recognition.onerror = () => {
+    setStatus("VOICE ERROR");
+    recognition = null;
+  };
+  recognition.onend = () => {
+    setStatus("SYSTEM READY");
+    recognition = null;
+  };
+  recognition.start();
+});
+
+// Restore the selected mode and backend settings.
+setMode("blue");
+document.getElementById("backendUrl").value = backendAddress();
+</script>
+</body>
+  </html>
+  
