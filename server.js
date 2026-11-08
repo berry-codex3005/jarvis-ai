@@ -9,10 +9,11 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 const PORT = process.env.PORT || 3000;
-const MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
+const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
   timeout: 60000,
   maxRetries: 2
 });
@@ -21,14 +22,14 @@ app.get("/", (req, res) => {
   res.json({
     status: "online",
     assistant: "JARVIS AI",
-    provider: "OpenAI"
+    provider: "Groq"
   });
 });
 
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    provider: "OpenAI"
+    provider: "Groq"
   });
 });
 
@@ -37,9 +38,9 @@ app.post("/api/chat", async (req, res) => {
     const message = req.body?.message;
     const mode = req.body?.mode || "blue";
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GROQ_API_KEY) {
       return res.status(500).json({
-        error: "OpenAI API key is not configured in Render."
+        error: "Groq API key is not configured in Render."
       });
     }
 
@@ -49,57 +50,57 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    console.log("[REQUEST] OpenAI chat");
-
     const isRed = String(mode).toLowerCase() === "red";
 
-    const response = await client.responses.create({
+    console.log("[REQUEST] Groq chat");
+
+    const completion = await client.chat.completions.create({
       model: MODEL,
-
-      instructions: isRed
-        ? "You are JARVIS, an advanced AI assistant. Give detailed, clear, well-organized answers with explanations when useful."
-        : "You are JARVIS, a helpful and intelligent AI assistant. Give clear, accurate and concise answers.",
-
-      input: message.trim(),
-
-      tools: [
-        { type: "web_search" }
+      messages: [
+        {
+          role: "system",
+          content: isRed
+            ? "You are JARVIS, an advanced AI assistant. Give detailed, accurate and well-organized answers."
+            : "You are JARVIS, a helpful and intelligent AI assistant. Give clear, accurate and concise answers."
+        },
+        {
+          role: "user",
+          content: message.trim()
+        }
       ],
-
-      max_output_tokens: isRed ? 3000 : 1500
+      max_tokens: isRed ? 3000 : 1500
     });
 
-    const answer = response.output_text;
+    const answer =
+      completion.choices?.[0]?.message?.content;
 
     if (!answer) {
-      throw new Error("OpenAI returned an empty response.");
+      throw new Error("Groq returned an empty response.");
     }
 
-    console.log("[SUCCESS] OpenAI response received");
+    console.log("[SUCCESS] Groq response received");
 
     return res.json({
       reply: answer,
       answer: answer,
-      provider: "OpenAI"
+      provider: "Groq"
     });
 
   } catch (error) {
     console.error(
-      "JARVIS OpenAI error:",
+      "JARVIS Groq error:",
       error.status || "",
       error.message
     );
 
-    const status = error.status || 500;
-
-    return res.status(status).json({
-      error: error.message || "OpenAI is temporarily unavailable.",
-      reply: "SYSTEM ERROR: OpenAI is temporarily unavailable. Please try again shortly."
+    return res.status(error.status || 500).json({
+      error: error.message || "Groq is temporarily unavailable.",
+      reply: "SYSTEM ERROR: Groq is temporarily unavailable. Please try again shortly."
     });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`JARVIS AI listening on port ${PORT}`);
-  console.log(`AI provider: OpenAI`);
+  console.log("AI provider: Groq");
 });
